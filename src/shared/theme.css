@@ -65,6 +65,17 @@ nav.top a.active {
   background: var(--card-bg);
 }
 
+@media (max-width: 640px) {
+  nav.top {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.75rem;
+  }
+  nav.top .brand {
+    width: 100%;
+  }
+}
+
 .card {
   background: var(--card-bg);
   border: 1px solid var(--border);

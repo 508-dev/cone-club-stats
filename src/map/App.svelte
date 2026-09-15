@@ -1,7 +1,8 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, mount, unmount } from 'svelte';
   import L from 'leaflet';
   import Nav from '../shared/Nav.svelte';
+  import AccidentPopup from './AccidentPopup.svelte';
 
   const YEARS = Array.from({ length: 10 }, (_, i) => 2016 + i); // geo coverage starts 2016
   const METRICS = [
@@ -74,20 +75,28 @@
     const filtered = year === 'all' ? fatalities : fatalities.filter((f) => f.year === year);
     fatalitiesInView = filtered.length;
     fatalityLayer = L.layerGroup(
-      filtered.map((f) =>
-        L.circleMarker([f.lat, f.lon], {
-          radius: 5,
+      filtered.map((f) => {
+        let popupComponent;
+        const marker = L.circleMarker([f.lat, f.lon], {
+          radius: 8,
           color: '#7a1f1a',
           weight: 1,
           fillColor: '#b0413e',
           fillOpacity: 0.85,
-        }).bindPopup(
-          `<strong>${f.year}-${String(f.month).padStart(2, '0')}-${String(f.day).padStart(2, '0')}</strong><br/>` +
-            `${f.district}<br/>` +
-            `Deaths: ${f.deaths}, Injuries: ${f.injuries}<br/>` +
-            `Involved: ${f.categories.join(', ')}`
-        )
-      )
+        }).bindPopup(() => {
+          if (popupComponent) unmount(popupComponent);
+          const target = document.createElement('div');
+          popupComponent = mount(AccidentPopup, { target, props: { accident: f } });
+          return target;
+        }, { className: 'accident-popup', maxWidth: 280, minWidth: 220 });
+        marker.on('popupopen', () => marker.setStyle({ weight: 3, fillOpacity: 1 }));
+        marker.on('popupclose', () => {
+          marker.setStyle({ weight: 1, fillOpacity: 0.85 });
+          if (popupComponent) unmount(popupComponent);
+          popupComponent = null;
+        });
+        return marker;
+      })
     ).addTo(map);
   }
 
@@ -100,7 +109,9 @@
   }
 
   onMount(async () => {
-    map = L.map(mapEl, { preferCanvas: true }).setView([25.0478, 121.5319], 12);
+    map = L.map(mapEl, { renderer: L.canvas({ pane: 'accidents', tolerance: 8 }) }).setView([25.0478, 121.5319], 12);
+    // Keep marker hit targets above the heat canvas, including after filter changes.
+    map.createPane('accidents').style.zIndex = '450';
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 19,
@@ -154,6 +165,8 @@
         <div><span class="num">{fatalitiesInView.toLocaleString()}</span><span class="lbl">fatal-accident markers</span></div>
       {/if}
     </div>
+
+    <p class="note marker-hint">Click or tap a red dot for accident details. Zoom in to separate nearby markers.</p>
 
     {#if meta}
       <p class="note">
@@ -233,6 +246,24 @@
     color: var(--muted);
     line-height: 1.4;
   }
+  .marker-hint {
+    margin: 0;
+  }
+  :global(.accident-popup .leaflet-popup-content-wrapper),
+  :global(.accident-popup .leaflet-popup-tip) {
+    background: var(--card-bg);
+    color: var(--fg);
+  }
+  :global(.accident-popup .leaflet-popup-content) {
+    margin: 18px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  :global(.leaflet-container .accident-popup a.leaflet-popup-close-button) {
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    color: var(--muted);
+  }
   .map-wrap {
     position: relative;
     flex: 1;
@@ -254,5 +285,22 @@
     border-radius: 6px;
     font-size: 0.8rem;
     z-index: 1000;
+  }
+  @media (max-width: 640px) {
+    .layout {
+      flex-direction: column;
+      height: auto;
+    }
+    .controls {
+      width: auto;
+      max-height: 38svh;
+      margin: 0.75rem;
+    }
+    .map-wrap {
+      flex: none;
+      height: 65svh;
+      min-height: 360px;
+      margin: 0 0.75rem 0.75rem;
+    }
   }
 </style>
