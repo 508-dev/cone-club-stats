@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T07:17:59.025Z",
+  "generatedAt": "2026-09-15T08:21:59.155Z",
   "sourceYearsRoc": [
     101,
     102,
@@ -21,6 +21,6 @@
   "notes": [
     "Deaths/injuries counts are per-accident (deduplicated across party rows) unless noted otherwise.",
     "Protective-equipment (\"wore\") is per-person, only recorded from CE 2020 onward.",
-    "Coordinates are only recorded from CE 2016 onward; earlier accidents are excluded from accidents.json."
+    "Coordinates are only recorded from CE 2016 onward; earlier accidents are excluded from the map."
   ]
 }

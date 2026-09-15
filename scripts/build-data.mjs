@@ -19,8 +19,8 @@ import {
 } from './codes.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const RAW_DIR = join(__dirname, '..', 'raw', 'taipei');
-const OUT_DIR = join(__dirname, '..', 'public', 'data');
+const RAW_DIR = process.env.DATA_RAW_DIR || join(__dirname, '..', 'raw', 'taipei');
+const OUT_DIR = process.env.DATA_OUT_DIR || join(__dirname, '..', 'public', 'data');
 mkdirSync(OUT_DIR, { recursive: true });
 
 // Column names vary by year; try each alias in order and take the first present.
@@ -57,7 +57,8 @@ const accidentGroups = new Map(); // accidentKey -> aggregate
 const partyRecords = []; // one entry per person involved, for seatbelt stats
 const yearlySummary = new Map(); // ceYear -> { accidents:Set, deaths, injuries }
 
-const files = readdirSync(RAW_DIR).filter((f) => f.endsWith('.csv'));
+const files = readdirSync(RAW_DIR).filter((f) => /^taipei_\d{3}\.csv$/.test(f)).sort();
+if (!files.length) throw new Error('No Taipei annual CSV files found');
 console.log(`Found ${files.length} CSV files in ${RAW_DIR}`);
 
 for (const file of files) {
@@ -83,6 +84,8 @@ for (const file of files) {
     const injuries = Number(getField(row, 'injuries') ?? 0);
     const lon = Number(getField(row, 'lon'));
     const lat = Number(getField(row, 'lat'));
+    const validCoordinates = Number.isFinite(lon) && Number.isFinite(lat)
+      && lon !== 0 && lat !== 0 && Math.abs(lon) <= 180 && Math.abs(lat) <= 90;
     const district = districtName(getField(row, 'districtRaw'));
     const vehicle = getField(row, 'vehicle');
     const category = vehicleCategory(vehicle);
@@ -99,8 +102,8 @@ for (const file of files) {
         minute: minute == null ? null : Number(minute),
         location,
         district,
-        lat: Number.isFinite(lat) && lat !== 0 ? lat : null,
-        lon: Number.isFinite(lon) && lon !== 0 ? lon : null,
+        lat: validCoordinates ? lat : null,
+        lon: validCoordinates ? lon : null,
         deaths: 0,
         injuries: 0,
         categories: new Set(),
@@ -110,8 +113,10 @@ for (const file of files) {
     acc.deaths = Math.max(acc.deaths, deaths);
     acc.injuries = Math.max(acc.injuries, injuries);
     acc.categories.add(category);
-    if (acc.lat == null && Number.isFinite(lat) && lat !== 0) acc.lat = lat;
-    if (acc.lon == null && Number.isFinite(lon) && lon !== 0) acc.lon = lon;
+    if (acc.lat == null && validCoordinates) {
+      acc.lat = lat;
+      acc.lon = lon;
+    }
 
     const severityRaw = getField(row, 'injurySeverity');
     const severity = INJURY_SEVERITY[severityRaw] ?? 'unknown';
@@ -252,7 +257,7 @@ const meta = {
   notes: [
     'Deaths/injuries counts are per-accident (deduplicated across party rows) unless noted otherwise.',
     'Protective-equipment ("wore") is per-person, only recorded from CE 2020 onward.',
-    'Coordinates are only recorded from CE 2016 onward; earlier accidents are excluded from accidents.json.',
+    'Coordinates are only recorded from CE 2016 onward; earlier accidents are excluded from the map.',
   ],
 };
 writeFileSync(join(OUT_DIR, 'meta.json'), JSON.stringify(meta, null, 2));

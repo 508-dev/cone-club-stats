@@ -1,0 +1,43 @@
+name: Refresh Taipei accident data
+
+on:
+  schedule:
+    - cron: '23 22 * * 0' # Monday 06:23 in Taiwan
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Download, validate, and prepare data
+        run: npm run refresh:data
+        env:
+          DATA_REPORT_PATH: ${{ runner.temp }}/data-refresh-report.md
+      - run: npm run build
+      - name: Open or update the data review PR
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
+        with:
+          branch: automation/taipei-data
+          base: main
+          title: 'Refresh Taipei accident data'
+          commit-message: 'Refresh validated Taipei accident snapshot'
+          body-path: ${{ runner.temp }}/data-refresh-report.md
+          add-paths: public/data/

@@ -4,7 +4,8 @@
   import Nav from '../shared/Nav.svelte';
   import AccidentPopup from './AccidentPopup.svelte';
 
-  const YEARS = Array.from({ length: 10 }, (_, i) => 2016 + i); // geo coverage starts 2016
+  $: YEARS = (meta?.sourceYearsRoc ?? []).map((y) => y + 1911)
+    .filter((y) => y >= meta.geoCoverageStartYear);
   const METRICS = [
     { key: 2, label: 'All accidents' },
     { key: 3, label: 'Deaths' },
@@ -137,7 +138,7 @@
     <label>
       Year
       <select bind:value={year}>
-        <option value="all">All years (2016–2025)</option>
+        <option value="all">All years{YEARS.length ? ` (${YEARS[0]}–${YEARS.at(-1)})` : ''}</option>
         {#each YEARS as y}
           <option value={y}>{y}</option>
         {/each}
