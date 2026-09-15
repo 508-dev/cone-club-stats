@@ -27,7 +27,7 @@
   const cache = new Map();
   async function loadHeatmap(y) {
     if (cache.has(y)) return cache.get(y);
-    const res = await fetch(`/data/heatmap/${y}.json`);
+    const res = await fetch(`${import.meta.env.BASE_URL}data/heatmap/${y}.json`);
     const data = await res.json();
     cache.set(y, data);
     return data;
@@ -35,7 +35,7 @@
 
   let fatalities = [];
   async function loadFatalities() {
-    const res = await fetch('/data/fatalities.json');
+    const res = await fetch(`${import.meta.env.BASE_URL}data/fatalities.json`);
     fatalities = await res.json();
   }
 
@@ -106,7 +106,7 @@
       maxZoom: 19,
     }).addTo(map);
 
-    const [metaRes] = await Promise.all([fetch('/data/meta.json'), loadFatalities()]);
+    const [metaRes] = await Promise.all([fetch(`${import.meta.env.BASE_URL}data/meta.json`), loadFatalities()]);
     meta = await metaRes.json();
     await refresh();
   });

@@ -40,9 +40,9 @@
     };
 
     const [peRes, ySumRes, metaRes] = await Promise.all([
-      fetch('/data/protective_equipment_stats.json'),
-      fetch('/data/yearly_summary.json'),
-      fetch('/data/meta.json'),
+      fetch(`${import.meta.env.BASE_URL}data/protective_equipment_stats.json`),
+      fetch(`${import.meta.env.BASE_URL}data/yearly_summary.json`),
+      fetch(`${import.meta.env.BASE_URL}data/meta.json`),
     ]);
     peStats = await peRes.json();
     yearlySummary = await ySumRes.json();

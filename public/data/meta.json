@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-07-22T12:33:46.333Z",
+  "sourceYearsRoc": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114
+  ],
+  "geoCoverageStartYear": 2016,
+  "protectiveEquipmentCoverageStartYear": 2020,
+  "notes": [
+    "Deaths/injuries counts are per-accident (deduplicated across party rows) unless noted otherwise.",
+    "Protective-equipment (\"wore\") is per-person, only recorded from CE 2020 onward.",
+    "Coordinates are only recorded from CE 2016 onward; earlier accidents are excluded from accidents.json."
+  ]
+}
