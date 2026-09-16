@@ -28,6 +28,13 @@ npm run build
 Commit the updated `public/data/` files alongside any relevant code changes.
 `raw/` remains ignored and is never included in the deployed site.
 
+The weekly/manual refresh workflow validates accident and fixed enforcement camera
+snapshots, then opens a review PR. Merge it to deploy the refreshed data.
+For a standalone camera update, run `npm run refresh:cameras`; add `-- --dry-run`
+to inspect changes without replacing the snapshot. Camera popups describe current
+equipment inventory, independent of the selected accident year.
+See [camera source and import notes](docs/implementation/fixed-cameras.md).
+
 ## GitHub Pages
 
 The workflow in `.github/workflows/deploy.yml` builds and deploys on pushes to

@@ -123,6 +123,8 @@ test('full dry-run stages all years, preserves published files on success/failur
   for (const resource of discoverResources(catalog(years))) resources.push({ ...resource,
     ...await validateCsv(join(raw, `taipei_${resource.rocYear}.csv`), resource.rocYear) });
   await writeFile(join(output, 'source.json'), JSON.stringify({ resources, coverageStart: '2012-01-02', coverageEnd: '2016-01-02' }, null, 2) + '\n');
+  const cameraSnapshot = '{"source":{"id":"taipei-fixed-cameras"},"cameras":[]}\n';
+  await writeFile(join(output, 'cameras.json'), cameraSnapshot);
   const before = await readFile(join(output, 'meta.json'), 'utf8');
   await writeFile(join(dir, 'catalog.json'), JSON.stringify(catalog(years)));
   const run = () => spawnSync(process.execPath, ['scripts/refresh-data.mjs', '--dry-run', '--catalog', 'catalog.json', '--raw-dir', 'raw'], { cwd: dir, encoding: 'utf8' });
@@ -131,6 +133,7 @@ test('full dry-run stages all years, preserves published files on success/failur
   assert.match(await readFile(join(dir, '.data-refresh-report.md'), 'utf8'), /No data changes/);
   assert.match(await readFile(join(dir, '.data-refresh-report.md'), 'utf8'), /values have no verified label/);
   assert.equal(await readFile(join(output, 'meta.json'), 'utf8'), before);
+  assert.equal(await readFile(join(output, 'cameras.json'), 'utf8'), cameraSnapshot);
   await writeFile(join(raw, 'taipei_105.csv'), '<html>not data</html>');
   const bad = run();
   assert.notEqual(bad.status, 0);

@@ -1,4 +1,4 @@
-name: Refresh Taipei accident data
+name: Refresh Taipei traffic data
 
 on:
   schedule:
@@ -31,13 +31,17 @@ jobs:
         run: npm run refresh:data
         env:
           DATA_REPORT_PATH: ${{ runner.temp }}/data-refresh-report.md
+      - name: Download and validate fixed enforcement cameras
+        run: npm run refresh:cameras
+        env:
+          DATA_REPORT_PATH: ${{ runner.temp }}/data-refresh-report.md
       - run: npm run build
       - name: Open or update the data review PR
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
         with:
           branch: automation/taipei-data
           base: main
-          title: 'Refresh Taipei accident data'
-          commit-message: 'Refresh validated Taipei accident snapshot'
+          title: 'Refresh Taipei traffic data'
+          commit-message: 'Refresh validated Taipei traffic snapshots'
           body-path: ${{ runner.temp }}/data-refresh-report.md
           add-paths: public/data/

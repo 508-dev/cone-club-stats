@@ -6,6 +6,7 @@
   "scripts": {
     "build:data": "node scripts/build-data.mjs",
     "refresh:data": "node scripts/refresh-data.mjs",
+    "refresh:cameras": "node scripts/refresh-cameras.mjs",
     "test": "node --test",
     "dev": "vite",
     "build": "vite build",

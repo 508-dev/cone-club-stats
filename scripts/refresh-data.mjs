@@ -1,7 +1,5 @@
 import { readFile, writeFile, mkdir, mkdtemp, copyFile, rename, rm, readdir } from 'node:fs/promises';
-import { createWriteStream } from 'node:fs';
-import { pipeline } from 'node:stream/promises';
-import { Readable } from 'node:stream';
+import { download } from './data/download.mjs';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -21,22 +19,6 @@ if ((values.catalog || values['raw-dir']) && !values['dry-run']) {
 async function readJson(path, fallback) {
   try { return JSON.parse(await readFile(path, 'utf8')); }
   catch (error) { if (error.code === 'ENOENT' && fallback !== undefined) return fallback; throw error; }
-}
-
-async function download(url, destination) {
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(180_000) });
-      if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
-      if (!response.body) throw new Error(`Empty response for ${url}`);
-      await pipeline(Readable.fromWeb(response.body), createWriteStream(destination));
-      return;
-    } catch (error) {
-      if (attempt === 3) throw error;
-      console.warn(`Download attempt ${attempt} failed: ${error.message}`);
-      await new Promise((done) => setTimeout(done, attempt * 1000));
-    }
-  }
 }
 
 const scratch = await mkdtemp(join(root, '.data-refresh-'));
@@ -106,6 +88,8 @@ try {
     }
     return result.sort();
   }
+  try { await copyFile(join(published, 'cameras.json'), join(outputDir, 'cameras.json')); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
   const files = await inventory(outputDir);
   const oldFiles = await inventory(published);
   let changed = JSON.stringify(files) !== JSON.stringify(oldFiles);

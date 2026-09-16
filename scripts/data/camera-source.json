@@ -1,0 +1,12 @@
+{
+  "id": "taipei-fixed-cameras",
+  "datasetId": 130111,
+  "title": "臺北市固定測速照相地點表",
+  "catalogUrl": "https://data.gov.tw/api/v2/rest/dataset/130111",
+  "landingPage": "https://data.gov.tw/dataset/130111",
+  "resourceDescription": "臺北市政府警察局固定式違規照相設備及區間測速裝置設置地點一覽表",
+  "publisher": "臺北市政府警察局交通警察大隊",
+  "license": "政府資料開放授權條款-第1版",
+  "cadence": "irregular",
+  "headers": ["編號", "功能", "設置路段", "設置地點", "緯度", "經度", "轄區", "拍攝方向", "速限-速度限制", "縣市", "縣市代碼"]
+}

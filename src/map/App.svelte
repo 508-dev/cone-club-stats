@@ -1,9 +1,11 @@
 <script>
-  import { onMount, mount, unmount } from 'svelte';
+  import { onMount } from 'svelte';
   import L from 'leaflet';
   import Nav from '../shared/Nav.svelte';
   import SourceCoverage from '../shared/SourceCoverage.svelte';
   import AccidentPopup from './AccidentPopup.svelte';
+  import CameraPopup from './CameraPopup.svelte';
+  import { bindComponentPopup } from './component-popup.js';
 
   $: YEARS = (meta?.sourceYearsRoc ?? []).map((y) => y + 1911)
     .filter((y) => y >= meta.geoCoverageStartYear);
@@ -17,6 +19,10 @@
   let year = 'all';
   let metricIdx = 0;
   let showFatalities = true;
+  let showCameras = false;
+  let cameraData = null;
+  let cameraError = '';
+  let cameraLayer;
   let mapEl;
   let map;
   let heatLayer;
@@ -78,28 +84,47 @@
     fatalitiesInView = filtered.length;
     fatalityLayer = L.layerGroup(
       filtered.map((f) => {
-        let popupComponent;
         const marker = L.circleMarker([f.lat, f.lon], {
           radius: 8,
           color: '#7a1f1a',
           weight: 1,
           fillColor: '#b0413e',
           fillOpacity: 0.85,
-        }).bindPopup(() => {
-          if (popupComponent) unmount(popupComponent);
-          const target = document.createElement('div');
-          popupComponent = mount(AccidentPopup, { target, props: { accident: f } });
-          return target;
-        }, { className: 'accident-popup', maxWidth: 280, minWidth: 220 });
+        });
+        bindComponentPopup(marker, AccidentPopup, { accident: f });
         marker.on('popupopen', () => marker.setStyle({ weight: 3, fillOpacity: 1 }));
         marker.on('popupclose', () => {
           marker.setStyle({ weight: 1, fillOpacity: 0.85 });
-          if (popupComponent) unmount(popupComponent);
-          popupComponent = null;
         });
         return marker;
       })
     ).addTo(map);
+  }
+
+  async function loadCameras() {
+    try {
+      const response = await fetch(`${import.meta.env.BASE_URL}data/cameras.json`);
+      if (!response.ok) throw new Error('Camera inventory unavailable');
+      cameraData = await response.json();
+    } catch {
+      cameraError = 'Camera inventory could not be loaded. Reload to try again.';
+    }
+  }
+
+  function renderCameras() {
+    if (!showCameras || !cameraData) {
+      if (cameraLayer) map.removeLayer(cameraLayer);
+      return;
+    }
+    if (!cameraLayer) {
+      const icon = L.divIcon({ className: 'camera-marker', iconSize: [28, 28], iconAnchor: [14, 14],
+        popupAnchor: [0, -14], html: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h8l2 3h3v12H3V8h3z"/><circle cx="12" cy="14" r="4"/></svg>' });
+      cameraLayer = L.layerGroup(cameraData.cameras.map((camera) =>
+        bindComponentPopup(L.marker([camera.lat, camera.lon], { icon, title: `Enforcement camera: ${camera.road}`, keyboard: true }),
+          CameraPopup, { camera, source: cameraData.source })
+      ));
+    }
+    if (!map.hasLayer(cameraLayer)) cameraLayer.addTo(map);
   }
 
   async function refresh() {
@@ -121,8 +146,14 @@
 
     const [metaRes] = await Promise.all([fetch(`${import.meta.env.BASE_URL}data/meta.json`), loadFatalities()]);
     meta = await metaRes.json();
+    loadCameras();
     await refresh();
   });
+
+  $: if (map) {
+    showCameras, cameraData;
+    renderCameras();
+  }
 
   $: if (map) {
     year, metricIdx, showFatalities;
@@ -160,11 +191,23 @@
       Show fatal-accident markers
     </label>
 
+    <label class="checkbox">
+      <input type="checkbox" bind:checked={showCameras} disabled={!cameraData} />
+      Show fixed enforcement cameras
+    </label>
+    {#if cameraError}<p class="note" role="status">{cameraError}</p>{/if}
+    {#if showCameras && cameraData}
+      <p class="note marker-hint">Blue camera icons show the current inventory, regardless of accident year. Click or tap for details.</p>
+    {/if}
+
     <div class="stats">
       <div><span class="num">{totalForMetric.toLocaleString()}</span><span class="lbl">{METRICS[metricIdx].label.toLowerCase()} (weighted)</span></div>
       <div><span class="num">{cellCount.toLocaleString()}</span><span class="lbl">grid cells shown</span></div>
       {#if showFatalities}
         <div><span class="num">{fatalitiesInView.toLocaleString()}</span><span class="lbl">fatal-accident markers</span></div>
+      {/if}
+      {#if showCameras && cameraData}
+        <div><span class="num">{cameraData.cameras.length.toLocaleString()}</span><span class="lbl">camera locations (current inventory)</span></div>
       {/if}
     </div>
 
@@ -267,6 +310,15 @@
     line-height: 32px;
     color: var(--muted);
   }
+  :global(.camera-marker) {
+    background: var(--series-1);
+    border: 2px solid white;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px #0005;
+    padding: 3px;
+  }
+  :global(.camera-marker svg) { width: 100%; height: 100%; fill: none; stroke: white; stroke-width: 1.8; }
+  :global(.camera-marker:focus-visible) { outline: 3px solid var(--fg); outline-offset: 2px; }
   .map-wrap {
     position: relative;
     flex: 1;
