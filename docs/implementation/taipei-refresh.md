@@ -86,13 +86,14 @@ refresh command. The older manual `build:data` command still regenerates its tim
   threshold are review flags, not statistical proof of an upstream error.
 - Raw snapshots are not archived durably yet. Hashes identify exact content but do
   not allow reconstructing an old download if the government overwrites it.
-- Freshness metadata is machine-readable; a user-facing source-status panel is a
-  follow-up. Workflow failures appear in Actions and retain the previous site data.
+- Both pages display source-record coverage and successful import date, with links
+  to the government source and the latest Actions check. Workflow failures appear
+  in Actions and retain the previous site data.
 
 ## Next stages
 
-1. Display coverage and successful import time on the site, with a link to Actions
-   for the most recent check; do not confuse rebuild time with data freshness.
+1. Coverage/import information is now displayed on both pages. A future enhancement
+   could show per-source validation status directly on the site.
 2. Decode existing weather, lighting, posted-speed-limit and collision-type fields
    using the correct codebook before/after 2023-07-01. Preserve unknowns and missing
    historical coverage. Add popup details/filters with tests for codebook boundaries.
@@ -104,7 +105,18 @@ refresh command. The older manual `build:data` command still regenerates its tim
 ## Validation log
 
 - Full offline 2012–2025 source validation and staged build passed.
-- Five tests cover discovery, validation, quality reporting, summary changes and a
+- Seven tests cover discovery, validation, quality reporting, summary changes and a
   complete dry run with no-op/failure preservation.
 - Production Vite build passed, with map years derived from coverage metadata.
-- Live refresh and final review results are recorded below when completed.
+- Full live refresh passed; repeat offline verification reported a no-op before
+  the expanded missing-field counters were introduced.
+- First GitHub Actions refresh completed successfully:
+  https://github.com/508-dev/cone-club-stats/actions/runs/34947564645
+- Final review found filename compatibility, coordinate-free-year layers, and
+  missing-field reporting gaps. Fixes and regression tests are prepared locally.
+- Government filenames with exactly one three-digit ROC year remain supported;
+  unexpected or duplicate annual files fail rather than being silently ignored.
+- Years without usable coordinates publish empty yearly grids. Missing district,
+  location, party sequence, time and category fields are included in review notes.
+- User handles commits and pushes. These review fixes and coverage UI changes have
+  not been committed by the assistant.

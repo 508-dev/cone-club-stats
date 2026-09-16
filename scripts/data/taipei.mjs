@@ -36,6 +36,9 @@ export async function validateCsv(path, rocYear) {
   let invalidCoordinates = 0;
   let missingCasualtyCounts = 0;
   let duplicatePartyKeys = 0;
+  let missingIdentityFields = 0;
+  let missingCategoryFields = 0;
+  let missingTimeFields = 0;
   const partyKeys = new Set();
   let coverageStart;
   let coverageEnd;
@@ -66,8 +69,10 @@ export async function validateCsv(path, rocYear) {
       const iso = date.toISOString().slice(0, 10);
       const hour = row['發生時-Hours'] ?? row['發生時'];
       for (const [value, max] of [[hour, 23], [row['發生分'], 59]]) {
+        if (!value) missingTimeFields++;
         if (value && (!/^\d+$/.test(value) || Number(value) > max)) fail('invalid time');
       }
+      for (const field of ['肇事地點', '當事人序號', '區序']) if (!row[field]) missingIdentityFields++;
       const partyKey = JSON.stringify([iso, hour, row['發生分'], row['肇事地點'], row['當事人序號']]);
       if (partyKeys.has(partyKey)) duplicatePartyKeys++;
       partyKeys.add(partyKey);
@@ -79,6 +84,7 @@ export async function validateCsv(path, rocYear) {
         if (!/^\d+$/.test(row[field])) fail(`invalid casualty count: ${field}`);
       }
       for (const [field, codes] of Object.entries(source.knownCodes)) {
+        if (field in row && !row[field]) missingCategoryFields++;
         if (row[field] && !codes.includes(row[field])) fail(`unrecognized ${field} code: ${row[field]}`);
       }
       if (rocYear >= 105) {
@@ -90,7 +96,9 @@ export async function validateCsv(path, rocYear) {
       }
     }
     if (!rows) throw new Error(`${rocYear}: empty CSV`);
-    return { rocYear, sha256: hash.digest('hex'), rows, missingCoordinates, invalidCoordinates, outsideTaipei, missingCasualtyCounts, duplicatePartyKeys, coverageStart, coverageEnd };
+    return { rocYear, sha256: hash.digest('hex'), rows, missingCoordinates, invalidCoordinates, outsideTaipei,
+      missingCasualtyCounts, duplicatePartyKeys, missingIdentityFields, missingCategoryFields, missingTimeFields,
+      coverageStart, coverageEnd };
   } finally {
     input.destroy();
     parser.destroy();

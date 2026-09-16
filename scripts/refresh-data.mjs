@@ -72,6 +72,9 @@ try {
   const comparison = compareSummaries(before, after);
   const warnings = [...comparison.warnings];
   for (const item of validated) {
+    if (item.missingIdentityFields) warnings.push(`${item.rocYear + 1911}: ${item.missingIdentityFields} location/district/party-sequence fields are blank; composite accident grouping may be ambiguous.`);
+    if (item.missingCategoryFields) warnings.push(`${item.rocYear + 1911}: ${item.missingCategoryFields} category fields are blank and retain the adapter's existing unknown/missing handling.`);
+    if (item.missingTimeFields) warnings.push(`${item.rocYear + 1911}: ${item.missingTimeFields} time fields are blank.`);
     if (item.missingCasualtyCounts) warnings.push(`${item.rocYear + 1911}: ${item.missingCasualtyCounts} casualty fields are blank. Totals sum recorded counts; blank values do not establish that there were no casualties.`);
     if (item.duplicatePartyKeys) warnings.push(`${item.rocYear + 1911}: ${item.duplicatePartyKeys} repeated accident/party keys need inspection; records were not silently deduplicated.`);
     if (item.invalidCoordinates) warnings.push(`${item.rocYear + 1911}: ${item.invalidCoordinates} party rows have invalid coordinates; these coordinates are excluded from mapping, while accidents remain in overall totals.`);

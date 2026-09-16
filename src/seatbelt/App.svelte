@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import Nav from '../shared/Nav.svelte';
+  import SourceCoverage from '../shared/SourceCoverage.svelte';
   import StatTile from './StatTile.svelte';
   import LineChart from './LineChart.svelte';
   import StackedBar from './StackedBar.svelte';
@@ -104,7 +105,7 @@
     <StatTile
       label="Fatalities analyzed"
       value={totalFatalitiesAnalyzed.toLocaleString()}
-      sub={meta ? `Taipei, ${meta.protectiveEquipmentCoverageStartYear}–2025` : ''}
+      sub={meta ? `Taipei, ${meta.protectiveEquipmentCoverageStartYear}–${peYears.at(-1) ?? '…'}` : ''}
     />
     <StatTile
       label="Motorcyclist deaths without a helmet"
@@ -143,9 +144,10 @@
     <LineChart title="Injuries / year" categories={yearlyYears} series={[{ name: 'Injuries', color: colors.s1, values: yearlyInjuries }]} yFormat={(v) => Math.round(v).toLocaleString()} height={160} />
   </section>
 
+  <SourceCoverage />
   {#if meta}
     <p class="note">
-      Source: Taipei City Police Traffic Division (data.taipei), 2012–2025. Protective-equipment
+      Source: Taipei City Police Traffic Division (data.taipei), {yearlySummary[0]?.year}–{yearlySummary.at(-1)?.year}. Protective-equipment
       ("wore helmet/seatbelt") is only recorded from {meta.protectiveEquipmentCoverageStartYear}
       onward — earlier years aren't included in the compliance figures above. "Known status"
       excludes records coded unknown or not-applicable (e.g. pedestrians). Category is the

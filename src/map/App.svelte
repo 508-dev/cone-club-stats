@@ -2,6 +2,7 @@
   import { onMount, mount, unmount } from 'svelte';
   import L from 'leaflet';
   import Nav from '../shared/Nav.svelte';
+  import SourceCoverage from '../shared/SourceCoverage.svelte';
   import AccidentPopup from './AccidentPopup.svelte';
 
   $: YEARS = (meta?.sourceYearsRoc ?? []).map((y) => y + 1911)
@@ -176,6 +177,7 @@
         Each grid cell is ~11m; heat intensity is the sum of the selected metric within a cell.
       </p>
     {/if}
+    <SourceCoverage />
   </aside>
 
   <div class="map-wrap">

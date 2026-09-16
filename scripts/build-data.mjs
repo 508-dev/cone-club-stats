@@ -57,12 +57,22 @@ const accidentGroups = new Map(); // accidentKey -> aggregate
 const partyRecords = []; // one entry per person involved, for seatbelt stats
 const yearlySummary = new Map(); // ceYear -> { accidents:Set, deaths, injuries }
 
-const files = readdirSync(RAW_DIR).filter((f) => /^taipei_\d{3}\.csv$/.test(f)).sort();
+const files = readdirSync(RAW_DIR).filter((f) => f.endsWith('.csv')).sort();
 if (!files.length) throw new Error('No Taipei annual CSV files found');
+const fileYears = new Map();
+for (const file of files) {
+  const numbers = file.match(/\d+/g) ?? [];
+  if (numbers.length !== 1 || !/^\d{3}$/.test(numbers[0])) {
+    throw new Error(`CSV filename must contain exactly one three-digit ROC year: ${file}`);
+  }
+  const rocYear = Number(numbers[0]);
+  if ([...fileYears.values()].includes(rocYear)) throw new Error(`Duplicate CSV year: ${rocYear}`);
+  fileYears.set(file, rocYear);
+}
 console.log(`Found ${files.length} CSV files in ${RAW_DIR}`);
 
 for (const file of files) {
-  const rocYear = Number(file.match(/(\d+)/)[1]);
+  const rocYear = fileYears.get(file);
   const ceYear = rocYear + 1911;
   const raw = readFileSync(join(RAW_DIR, file));
   const rows = parse(raw, { columns: true, bom: true, skip_empty_lines: true });
@@ -175,7 +185,8 @@ function buildGrid(records) {
 }
 
 mkdirSync(join(OUT_DIR, 'heatmap'), { recursive: true });
-const byYear = new Map();
+// A valid source year may have no usable coordinates; still publish its empty layer.
+const byYear = new Map([...yearlySummary.keys()].filter((y) => y >= 2016).map((y) => [y, []]));
 for (const a of geocoded) {
   if (!byYear.has(a.year)) byYear.set(a.year, []);
   byYear.get(a.year).push(a);
@@ -251,7 +262,7 @@ console.log(`protective_equipment_stats.json: ${protectiveEquipmentStats.length}
 // --- Output 4: meta.json — data-coverage caveats the frontend should surface to users.
 const meta = {
   generatedAt: new Date().toISOString(),
-  sourceYearsRoc: [...new Set(files.map((f) => Number(f.match(/(\d+)/)[1])))].sort((a, b) => a - b),
+  sourceYearsRoc: [...fileYears.values()].sort((a, b) => a - b),
   geoCoverageStartYear: 2016, // ROC 105
   protectiveEquipmentCoverageStartYear: 2020, // ROC 109
   notes: [

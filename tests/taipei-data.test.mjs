@@ -69,6 +69,37 @@ test('summary comparison reports large revisions and rejects lost years', () => 
   assert.throws(() => compareSummaries(before, []), /lost year/);
 });
 
+test('missing grouping and classification fields are reported', async (t) => {
+  const file = join(await fixture(t), 'data.csv');
+  await writeFile(file, csv(114, {
+    '肇事地點': '', '區序': '', '當事人序號': '',
+    '發生時-Hours': '', '發生分': '', '受傷程度': '',
+  }));
+  const result = await validateCsv(file, 114);
+  assert.equal(result.missingIdentityFields, 3);
+  assert.equal(result.missingTimeFields, 2);
+  assert.ok(result.missingCategoryFields >= 1);
+});
+
+test('government filenames work and a year with no coordinates publishes an empty map layer', async (t) => {
+  const dir = await fixture(t);
+  const raw = join(dir, 'raw');
+  const output = join(dir, 'output');
+  await mkdir(raw);
+  await writeFile(join(raw, '115年-臺北市死傷交通事故明細.csv'), csv(115, { '座標-X': '', '座標-Y': '' }));
+  const run = () => spawnSync(process.execPath, ['scripts/build-data.mjs'], {
+    cwd: resolve('.'), env: { ...process.env, DATA_RAW_DIR: raw, DATA_OUT_DIR: output }, encoding: 'utf8',
+  });
+  assert.equal(run().status, 0);
+  assert.deepEqual(JSON.parse(await readFile(join(output, 'heatmap/2026.json'), 'utf8')), []);
+  assert.deepEqual(JSON.parse(await readFile(join(output, 'meta.json'), 'utf8')).sourceYearsRoc, [115]);
+  await writeFile(join(raw, 'taipei_115.csv'), csv(115));
+  assert.notEqual(run().status, 0, 'Duplicate annual files must not double-count a year');
+  await rm(join(raw, 'taipei_115.csv'));
+  await writeFile(join(raw, 'unrecognized.csv'), csv(114));
+  assert.notEqual(run().status, 0, 'Unexpected files must not be silently ignored');
+});
+
 test('full dry-run stages all years, preserves published files on success/failure, and detects a no-op', async (t) => {
   const dir = await fixture(t);
   await cp(resolve('scripts'), join(dir, 'scripts'), { recursive: true });
