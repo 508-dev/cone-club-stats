@@ -2,6 +2,7 @@ import { createReadStream } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { parse } from 'csv-parse';
+import { codebookForDate, contextFields, contextValue, isRecognizedSpeedLimit } from '../../src/shared/accident-context.js';
 
 export const source = JSON.parse(await readFile(new URL('./taipei-source.json', import.meta.url), 'utf8'));
 
@@ -39,6 +40,8 @@ export async function validateCsv(path, rocYear) {
   let missingIdentityFields = 0;
   let missingCategoryFields = 0;
   let missingTimeFields = 0;
+  let unknownContextValues = 0;
+  let missingContextValues = 0;
   const partyKeys = new Set();
   let coverageStart;
   let coverageEnd;
@@ -67,6 +70,13 @@ export async function validateCsv(path, rocYear) {
       const date = new Date(Date.UTC(year, month - 1, day));
       if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) fail('invalid date');
       const iso = date.toISOString().slice(0, 10);
+      const codebook = codebookForDate(year, month, day);
+      for (const [field, column] of Object.entries(contextFields)) {
+        if (!(column in row)) continue;
+        const value = row[column].trim();
+        if (!value) missingContextValues++;
+        else if (!(field === 'speedLimit' ? isRecognizedSpeedLimit(value) : contextValue(field, value, codebook).recognized)) unknownContextValues++;
+      }
       const hour = row['發生時-Hours'] ?? row['發生時'];
       for (const [value, max] of [[hour, 23], [row['發生分'], 59]]) {
         if (!value) missingTimeFields++;
@@ -98,6 +108,7 @@ export async function validateCsv(path, rocYear) {
     if (!rows) throw new Error(`${rocYear}: empty CSV`);
     return { rocYear, sha256: hash.digest('hex'), rows, missingCoordinates, invalidCoordinates, outsideTaipei,
       missingCasualtyCounts, duplicatePartyKeys, missingIdentityFields, missingCategoryFields, missingTimeFields,
+      unknownContextValues, missingContextValues,
       coverageStart, coverageEnd };
   } finally {
     input.destroy();

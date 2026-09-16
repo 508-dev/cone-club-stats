@@ -103,16 +103,22 @@ test('government filenames work and a year with no coordinates publishes an empt
 test('full dry-run stages all years, preserves published files on success/failure, and detects a no-op', async (t) => {
   const dir = await fixture(t);
   await cp(resolve('scripts'), join(dir, 'scripts'), { recursive: true });
+  await cp(resolve('src/shared'), join(dir, 'src/shared'), { recursive: true });
   await symlink(resolve('node_modules'), join(dir, 'node_modules'), 'dir');
   const raw = join(dir, 'raw');
   const output = join(dir, 'public/data');
   await mkdir(raw);
   await mkdir(output, { recursive: true });
   const years = [101, 102, 103, 104, 105];
-  for (const year of years) await writeFile(join(raw, `taipei_${year}.csv`), csv(year));
+  for (const year of years) await writeFile(join(raw, `taipei_${year}.csv`), csv(year, year === 105
+    ? { '天候': 'constructor', '光線': '3', '速限-速度限制': '50', '事故類型及型態': '13' } : {}));
   const build = spawnSync(process.execPath, ['scripts/build-data.mjs'], { cwd: dir,
     env: { ...process.env, DATA_RAW_DIR: raw, DATA_OUT_DIR: output }, encoding: 'utf8' });
   assert.equal(build.status, 0, build.stderr);
+  const fatalities = JSON.parse(await readFile(join(output, 'fatalities.json'), 'utf8'));
+  assert.deepEqual(fatalities[0].context, {
+    codebook: 'pre-2023-07-01', weather: ['constructor'], lighting: [], speedLimit: ['50'], collision: [],
+  });
   const resources = [];
   for (const resource of discoverResources(catalog(years))) resources.push({ ...resource,
     ...await validateCsv(join(raw, `taipei_${resource.rocYear}.csv`), resource.rocYear) });
@@ -123,6 +129,7 @@ test('full dry-run stages all years, preserves published files on success/failur
   const good = run();
   assert.equal(good.status, 0, good.stderr);
   assert.match(await readFile(join(dir, '.data-refresh-report.md'), 'utf8'), /No data changes/);
+  assert.match(await readFile(join(dir, '.data-refresh-report.md'), 'utf8'), /values have no verified label/);
   assert.equal(await readFile(join(output, 'meta.json'), 'utf8'), before);
   await writeFile(join(raw, 'taipei_105.csv'), '<html>not data</html>');
   const bad = run();

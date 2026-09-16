@@ -9,6 +9,7 @@ import { readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'csv-parse/sync';
+import { createContext, mergeContext } from '../src/shared/accident-context.js';
 import {
   PROTECTIVE_EQUIPMENT,
   INJURY_SEVERITY,
@@ -108,7 +109,7 @@ for (const file of files) {
         year: ceYear,
         month: Number(month),
         day: Number(day),
-        hour: Number(hour),
+        hour: hour == null ? null : Number(hour),
         minute: minute == null ? null : Number(minute),
         location,
         district,
@@ -117,9 +118,11 @@ for (const file of files) {
         deaths: 0,
         injuries: 0,
         categories: new Set(),
+        context: createContext(ceYear, Number(month), Number(day)),
       });
     }
     const acc = accidentGroups.get(accidentKey);
+    mergeContext(acc.context, row);
     acc.deaths = Math.max(acc.deaths, deaths);
     acc.injuries = Math.max(acc.injuries, injuries);
     acc.categories.add(category);
@@ -219,6 +222,7 @@ const fatalities = geocoded
     deaths: a.deaths,
     injuries: a.injuries,
     categories: [...a.categories],
+    context: a.context,
   }));
 writeFileSync(join(OUT_DIR, 'fatalities.json'), JSON.stringify(fatalities));
 console.log(`fatalities.json: ${fatalities.length} fatal accidents`);

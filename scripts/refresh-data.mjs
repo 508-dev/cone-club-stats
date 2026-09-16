@@ -72,6 +72,8 @@ try {
   const comparison = compareSummaries(before, after);
   const warnings = [...comparison.warnings];
   for (const item of validated) {
+    if (item.unknownContextValues) warnings.push(`${item.rocYear + 1911}: ${item.unknownContextValues} weather/lighting/collision/speed-limit values have no verified label; raw values are preserved and shown as unrecognized.`);
+    if (item.missingContextValues) warnings.push(`${item.rocYear + 1911}: ${item.missingContextValues} condition fields are blank.`);
     if (item.missingIdentityFields) warnings.push(`${item.rocYear + 1911}: ${item.missingIdentityFields} location/district/party-sequence fields are blank; composite accident grouping may be ambiguous.`);
     if (item.missingCategoryFields) warnings.push(`${item.rocYear + 1911}: ${item.missingCategoryFields} category fields are blank and retain the adapter's existing unknown/missing handling.`);
     if (item.missingTimeFields) warnings.push(`${item.rocYear + 1911}: ${item.missingTimeFields} time fields are blank.`);
