@@ -39,22 +39,3 @@ See [camera source and import notes](docs/implementation/fixed-cameras.md).
 
 The workflow in `.github/workflows/deploy.yml` builds and deploys on pushes to
 `main`, and can also be run manually from the Actions tab. Only `dist/` is uploaded.
-In repository **Settings → Pages**, set **Source** to **GitHub Actions**.
-For a private organization repository, GitHub Pages requires GitHub Team or
-Enterprise; the published site is normally public.
-
-Expected URL: https://508-dev.github.io/cone-club-stats/
-
-The workflow reads the base path from GitHub Pages. To check that path locally:
-
-```sh
-BASE_PATH=/cone-club-stats/ npm run build
-BASE_PATH=/cone-club-stats/ npm run preview
-```
-
-Open `http://localhost:4173/cone-club-stats/` and
-`http://localhost:4173/cone-club-stats/seatbelt.html`.
-
-The current JSON snapshot is about 7.5 MB; its largest file is about 2.6 MB.
-GitHub Pages allows a published site of up to 1 GB and has a soft bandwidth limit
-of 100 GB/month. See [GitHub Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits).
